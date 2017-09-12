@@ -8,12 +8,15 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/Actor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AToyGameCharacter
 
 AToyGameCharacter::AToyGameCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -45,6 +48,21 @@ AToyGameCharacter::AToyGameCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+	isRewinding = false;
+	RewindTime = 2;
+}
+
+void AToyGameCharacter::Tick(float DeltaTime)
+{
+	if (isRewinding == false)
+	{
+		StoreCharacterTransform();
+	}
+	else if (isRewinding == true)
+	{
+		RewindHazard();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -57,8 +75,10 @@ void AToyGameCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
+
 	PlayerInputComponent->BindAxis("MoveForward", this, &AToyGameCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AToyGameCharacter::MoveRight);
+
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -68,9 +88,6 @@ void AToyGameCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AToyGameCharacter::LookUpAtRate);
 
-	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &AToyGameCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &AToyGameCharacter::TouchStopped);
 
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AToyGameCharacter::OnResetVR);
@@ -80,16 +97,6 @@ void AToyGameCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 void AToyGameCharacter::OnResetVR()
 {
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
-}
-
-void AToyGameCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		Jump();
-}
-
-void AToyGameCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		StopJumping();
 }
 
 void AToyGameCharacter::TurnAtRate(float Rate)
@@ -112,6 +119,7 @@ void AToyGameCharacter::MoveForward(float Value)
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
+
 		// get forward vector
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 		AddMovementInput(Direction, Value);
@@ -126,9 +134,62 @@ void AToyGameCharacter::MoveRight(float Value)
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 	
+
 		// get right vector 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
 	}
+}
+
+void AToyGameCharacter::AddBrick()
+{
+	totalBricks++;
+}
+
+///////////////////////////////////////////////////////////////
+// This function is for storing the player's transform, eventually to be used in rewinding the player.
+// Used in tick function
+void AToyGameCharacter::StoreCharacterTransform()
+{
+	// Adds the actor transform to the array this will happen every tick (see line 84 .h)
+	LocArray.Add(GetActorTransform());
+
+
+	// Removes all array indexes that are greater than the timer.
+	// IF YOU WANT TO CHANGE THE REWIND TIME, ADJUST THE > VALUE (60 per second).
+}
+
+// Activates the timer for the rewind
+void AToyGameCharacter::ActivateRewind()
+{
+	GetWorldTimerManager().SetTimer(ReverseTimerHandle, this, &AToyGameCharacter::RewindTimer, 1.0f, true);
+	isRewinding = true;
+}
+
+void AToyGameCharacter::RewindTimer()
+{
+	--RewindTime;
+	if (RewindTime < 1)
+	{
+		GetWorldTimerManager().ClearTimer(ReverseTimerHandle);
+		isRewinding = false;
+		RewindTime = 2;
+	}
+}
+
+///////////////////////////////////////////////////////////////
+// This function is for rewinding the player's position, giving the illusion that they're going back in time for a short period.
+// Used in tick function
+void AToyGameCharacter::RewindHazard()
+{
+	// Set's the actor's transform to be the last index in the array, aka the last location.
+	SetActorTransform(LocArray.Last());
+	
+	// Removves any array indexes that are greater than 0
+	LocArray.RemoveAll([](int32 Val)
+	{
+		return Val > 0 == 0;
+	});
+
 }

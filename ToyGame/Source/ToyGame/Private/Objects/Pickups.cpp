@@ -4,6 +4,9 @@
 #include "Components/PrimitiveComponent.h"
 #include "UObject/UObjectGlobals.h"
 #include "Components/BoxComponent.h"
+#include "ToyGamePlayerController.h"
+#include "ToyGameCharacter.h"
+#include "GameFramework/Actor.h"
 
 // Sets default values
 APickups::APickups()
@@ -27,9 +30,13 @@ APickups::APickups()
 
 void APickups::OnPlayerEnterPickupBox(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
-	// Functionality for pickup goes here
-	brick++;
+	auto PlayerCharacter = Cast<AToyGameCharacter>(GetWorld()->GetFirstPlayerController()->GetPawn());
+	if (PlayerCharacter)
+	{
+		// Add a brick to the character
+		PlayerCharacter->AddBrick();
 
-	// Destroy the pickup on collision
-	Destroy();
+		// Destroy the pickup on collision
+		Destroy();
+	}
 }

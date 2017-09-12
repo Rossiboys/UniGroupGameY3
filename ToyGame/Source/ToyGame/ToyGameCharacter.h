@@ -29,6 +29,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
+	void Tick(float DeltaTime);
+
 protected:
 
 	/** Resets HMD orientation in VR. */
@@ -52,11 +54,6 @@ protected:
 	 */
 	void LookUpAtRate(float Rate);
 
-	/** Handler for when a touch input begins. */
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 protected:
 	// APawn interface
@@ -68,5 +65,26 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickups")
+	int32 totalBricks;
+
+	void AddBrick();
+
+	FTimerHandle ReverseTimerHandle;
+
+private:
+
+	void StoreCharacterTransform();
+
+	void ActivateRewind();
+	void RewindTimer();
+	void RewindHazard();
+
+	bool isRewinding;
+	int32 RewindTime;
+
+	// Arrays for storing the character's location and rotation
+	TArray<FTransform>LocArray;
 };
 
