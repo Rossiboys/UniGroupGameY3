@@ -21,6 +21,8 @@ class AToyGameCharacter : public ACharacter
 public:
 	AToyGameCharacter();
 
+	class AActor* ToyGameCharacter;
+
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -69,22 +71,23 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pickups")
 	int32 totalBricks;
 
+	// Functions run when character picks up objects or runs into a hazard
 	void AddBrick();
-
-	FTimerHandle ReverseTimerHandle;
+	void ActivateRewind();
 
 private:
 
+	FTimerHandle ReverseTimerHandle;
+
 	void StoreCharacterTransform();
 
-	void ActivateRewind();
 	void RewindTimer();
 	void RewindHazard();
 
 	bool isRewinding;
 	int32 RewindTime;
 
-	// Arrays for storing the character's location and rotation
+	// Array for storing the character's location and rotation
 	TArray<FTransform>LocArray;
 };
 

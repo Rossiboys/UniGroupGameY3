@@ -33,9 +33,6 @@ void APickups::OnPlayerEnterPickupBox(UPrimitiveComponent* OverlappedComp, AActo
 	auto PlayerCharacter = Cast<AToyGameCharacter>(GetWorld()->GetFirstPlayerController()->GetPawn());
 	if (PlayerCharacter)
 	{
-		// Add a brick to the character
-		PlayerCharacter->AddBrick();
-
 		// Destroy the pickup on collision
 		Destroy();
 	}

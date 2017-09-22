@@ -9,6 +9,7 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Actor.h"
+#include "Containers/Array.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AToyGameCharacter
@@ -63,6 +64,8 @@ void AToyGameCharacter::Tick(float DeltaTime)
 	{
 		RewindHazard();
 	}
+
+	LocArray.RemoveAt(121, DeltaTime);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -113,6 +116,7 @@ void AToyGameCharacter::LookUpAtRate(float Rate)
 
 void AToyGameCharacter::MoveForward(float Value)
 {
+	// Prevents the player from moving if they are rewinding
 	if ((Controller != NULL) && (Value != 0.0f))
 	{
 		// find out which way is forward
@@ -128,7 +132,8 @@ void AToyGameCharacter::MoveForward(float Value)
 
 void AToyGameCharacter::MoveRight(float Value)
 {
-	if ( (Controller != NULL) && (Value != 0.0f) )
+	// Prevents the player from moving if they are rewinding
+	if ( (Controller != NULL) && (Value != 0.0f))
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -154,17 +159,21 @@ void AToyGameCharacter::StoreCharacterTransform()
 {
 	// Adds the actor transform to the array this will happen every tick (see line 84 .h)
 	LocArray.Add(GetActorTransform());
-
-
-	// Removes all array indexes that are greater than the timer.
-	// IF YOU WANT TO CHANGE THE REWIND TIME, ADJUST THE > VALUE (60 per second).
 }
 
 // Activates the timer for the rewind
 void AToyGameCharacter::ActivateRewind()
 {
-	GetWorldTimerManager().SetTimer(ReverseTimerHandle, this, &AToyGameCharacter::RewindTimer, 1.0f, true);
-	isRewinding = true;
+	if (isRewinding == false)
+	{
+		isRewinding = true;
+
+		GetWorldTimerManager().SetTimer(ReverseTimerHandle, this, &AToyGameCharacter::RewindTimer, 1.0f, true);
+
+		// Changes the tick interval so that the rewind is smoother and not instant
+		PrimaryActorTick.TickInterval = 0.0166666666666667f;
+
+	}
 }
 
 void AToyGameCharacter::RewindTimer()
@@ -175,21 +184,28 @@ void AToyGameCharacter::RewindTimer()
 		GetWorldTimerManager().ClearTimer(ReverseTimerHandle);
 		isRewinding = false;
 		RewindTime = 2;
+
+		// Changes the tick interval back to normal, so character transforms are stored correctly
+		PrimaryActorTick.TickInterval = 0.0f;
 	}
 }
 
 ///////////////////////////////////////////////////////////////
 // This function is for rewinding the player's position, giving the illusion that they're going back in time for a short period.
 // Used in tick function
+
+// TODO add posteffects to make it look cool
+
+// END TODO
 void AToyGameCharacter::RewindHazard()
 {
 	// Set's the actor's transform to be the last index in the array, aka the last location.
 	SetActorTransform(LocArray.Last());
-	
-	// Removves any array indexes that are greater than 0
-	LocArray.RemoveAll([](int32 Val)
-	{
-		return Val > 0 == 0;
-	});
 
+	// Removes the index at the end if it's greater than 0
+	int32 i = LocArray.Num() - 1;
+	if (i > 1)
+	{
+		LocArray.RemoveAt(i);
+	}
 }
